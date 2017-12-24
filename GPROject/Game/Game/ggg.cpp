@@ -1,8 +1,6 @@
 ﻿#include "stdafx.h"
 
-
-int main_t()
+int t_main()
 {
-	return 0;
+	return (0);
 }
-

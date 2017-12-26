@@ -4,41 +4,64 @@
 #include "map.h" //подключили код с картой
 #include <sstream> //текст
 
+#include <list>
+
+
 using namespace sf;
-////////////////////////////КЛАСС ИГРОКА////////////////////////
-////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
-class Player { // класс Игрока
-private: float x, y;
+////////////////////////////КЛАСС СУЩНОСТЬ////////////////////////
+class Entity {
 public:
-	float w, h, dx, dy, speed; //координаты игрока (х,у), высота и ширина, 
-							   //ускорение (по “х” и по “у”), сама скорость
-	int  playerScore, health;//новая переменная “health”, хранящая жизни игрока
-	float CurrentFrame = 0;//хранит текущий кадр
-	bool life;//переменная “life” жизнь, логическая
-	enum { left, right, up, down, stay } state;//перечисления - состояние объекта
-	std::string File; //файл с расширением
-	Image image;//сфмл изображение
+	enum { left, right, up, down, stay } state;// тип перечисления - состояние объекта
+	float dx, dy, x, y, speed, moveTimer;//добавили переменную таймер для будущих целей
+	int w, h, health; //переменная “health”, хранящая жизни игрока
+	bool life; //переменная “life” жизнь, логическая
 	Texture texture;//сфмл текстура
 	Sprite sprite;//сфмл спрайт 
+	float CurrentFrame;//хранит текущий кадр
+	std::string name;//враги могут быть разные, врагов можно различать по именам
+					 //каждому можно дать свое действие в update() в зависимости от имени
 
-				  ////////////////////////////////////////////КОНСТРУКТРОР////////////////////////////////////////////
-	Player(std::string F, float X, float Y, float W, float H) {
-		playerScore = 0;
-		dx = 0; dy = 0; speed = 0; state = stay;
+	Entity(Image &image, float X, float Y, int W, int H, std::string Name) {
+		x = X; y = Y; //координата появления спрайта
+		w = W; h = H;
+		name = Name;
+		moveTimer = 0;
+		dx = 0; dy = 0;
+		speed = 0;
+		CurrentFrame = 0;
 		health = 100;
-		//инициализировали переменную жизни в конструкторе
-		life = true;//инициализировали логическую переменную жизни, герой жив
-		File = F; //имя файла+расширение
-		w = W; h = H; //высота и ширина
-		image.loadFromFile("Sprites/" + File);//загружаем в image изображение, 
-		image.createMaskFromColor(Color(41, 33, 59)); //убираем ненужный темно-синий цвет
+		life = true; //инициализировали логическую переменную жизни, герой жив
 		texture.loadFromImage(image); //заносим наше изображение в текстуру
 		sprite.setTexture(texture); //заливаем спрайт текстурой
-		x = X; y = Y; //координата появления спрайта
-		sprite.setTextureRect(IntRect(0, 0, w, h));
-		//Задаем спрайту один прямоугольник для
-		//вывода одного льва. IntRect – для приведения типов
 	}
+
+	FloatRect getRect() {//метод получения прямоугольника. его коорд, размеры (шир,высот).
+		FloatRect FR(x, y, w, h); // переменная FR типа FloatRect
+		return FR;
+		//return FloatRect(x, y, w, h);
+		//Тип данных (класс) "sf::FloatRect" позволяет хранить четыре координаты прямоугольника
+		//в нашей игре это координаты текущего расположения тайла на карте
+		//далее это позволит спросить, есть ли ещё какой-либо тайл на этом месте 
+		//эта ф-ция нужна для проверки пересечений 
+	}
+	virtual void update(float time) = 0;
+};
+
+////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
+class Player :public Entity {
+public:
+	int playerScore;//эта переменная может быть только у игрока
+
+	Player(Image &image, float X, float Y, int W, int H, std::string Name) :Entity(image, X, Y, W, H, Name) {
+		playerScore = 0;
+		state = stay;
+		if (name == "Player1") {
+			//Задаем спрайту один прямоугольник для
+			//вывода одного игрока. IntRect – для приведения типов
+			sprite.setTextureRect(IntRect(0, 0, w, h));
+		}
+	}
+
 	//////////////////ДВИЖЕНИЕ////////////////////
 	void control() {
 		if ((Keyboard::isKeyPressed(Keyboard::Left) || (Keyboard::isKeyPressed(Keyboard::A)))) {
@@ -134,7 +157,7 @@ public:
 	//Метод проверки столкновений с элементами карты
 	void checkCollisionWithMap(float Dx, float Dy) {
 		for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
-			for (int j = x / 64; j<(x + w) / 64; j++)
+			for (int j = x / 64; j < (x + w) / 64; j++)
 			{
 				if (TileMap[i][j] == '0')//если элемент тайлик земли
 				{
@@ -167,7 +190,113 @@ public:
 		//далее это позволит спросить, есть ли ещё какой-либо тайл на этом месте 
 		//эта ф-ция нужна для проверки пересечений	
 	}
+
 };
+
+/////////////////////////////////////////ВРАГ////////////////////////////////////////////
+
+class Enemy :public Entity {
+public:
+	int direction;//направление движения врага
+	Enemy(Image &image, float X, float Y, int W, int H, std::string Name) :Entity(image, X, Y, W, H, Name) {
+		if (name == "EasyEnemy") {
+			//Задаем спрайту один прямоугольник для
+			//вывода одного игрока. IntRect – для приведения типов
+			sprite.setTextureRect(IntRect(0, 0, w, h));
+			direction = rand() % 4; //Направление движения врага задаём случайным образом
+									  //через генератор случайных чисел
+			speed = 0.075;//даем скорость.этот объект всегда двигается
+			dx = speed;
+		}
+	}
+
+	void checkCollisionWithMap(float Dx, float Dy)//ф-ция проверки столкновений с картой
+	{
+		for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
+			for (int j = x / 64; j<(x + w) / 64; j++)
+			{
+				if (TileMap[i][j] == '0')//если элемент - тайлик земли
+				{
+					if (Dy > 0) {
+						y = i * 64 - h;  dy = -0.1;
+						direction = rand() % 4; //Направление движения врага
+					}//по Y 
+					if (Dy < 0) {
+						y = i * 64 + 64; dy = 0.1;
+						direction = rand() % 4;//Направление движения врага 
+					}//столкновение с верхними краями 
+					if (Dx > 0) {
+						x = j * 64 - w; dx = -0.1;
+						direction = rand() % 4;//Направление движения врага 
+					}//с правым краем карты
+					if (Dx < 0) {
+						x = j * 64 + 64; dx = 0.1;
+						direction = rand() % 4; //Направление движения врага
+					}// с левым краем карты
+				}
+			}
+	}
+
+	void update(float time) //метод "оживления/обновления" объекта класса.
+	{ 
+		if (name == "EasyEnemy") {//для персонажа с таким именем логика будет такой
+		
+			if (life) {//проверяем, жив ли герой
+				dx = 0;
+				dy = 0;
+				switch (direction)//делаются различные действия в зависимости от состояния
+				{
+				case 0: {//состояние идти вправо
+
+					dx = speed;
+					CurrentFrame += 0.005*time;
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 48, 42, 48));
+					break;
+				}
+				case 1: {//состояние идти влево
+					dx = -speed;
+					CurrentFrame += 0.005*time;
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 96, 42, 48));
+					break;
+				}
+				case 2: {//идти вверх
+					dy = -speed;
+					CurrentFrame += 0.005*time;
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 0, 42, 48));
+					break;
+				}
+				case 3: {//идти вниз
+					dy = speed;
+					CurrentFrame += 0.005*time;
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 144, 42, 48));
+					break;
+
+				}
+				}
+
+
+				x += dx*time; //движение по “X”
+				checkCollisionWithMap(dx, 0);//обрабатываем столкновение по Х
+
+
+				y += dy*time; //движение по “Y”
+				checkCollisionWithMap(0, dy);//обрабатываем столкновение по Y
+
+
+				sprite.setPosition(x, y); //спрайт в позиции (x, y).
+
+				if (health <= 0) { life = false; }//если жизней меньше 0, либо равно 0, то умираем 
+			}
+		}
+
+		
+	}
+};//класс Enemy закрыт
+
 
 
 
@@ -176,7 +305,7 @@ int main()
 
 
 	sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
-	sf::RenderWindow window(sf::VideoMode(1224, 768, desktop.bitsPerPixel), "Lesson 7");
+	sf::RenderWindow window(sf::VideoMode(1224, 768, desktop.bitsPerPixel), "Game_lab");
 
 	Font font;//шрифт 
 	font.loadFromFile("Abys-Regular.ttf");//передаем нашему шрифту файл шрифта
@@ -198,10 +327,30 @@ int main()
 	Clock gameTimeClock;//переменная игрового времени, будем здесь хранить время игры 
 	int gameTime = 0;//объявили игровое время, инициализировали.
 
+	Image heroImage;
+	heroImage.loadFromFile("Sprites/hero.png"); // загружаем изображение игрока
 
-	Player p("hero.png", 100, 100, 42.0, 48.0);//создаем объект p класса player, задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
+	Image easyEnemyImage;
+	easyEnemyImage.loadFromFile("Sprites/enemy.png"); // загружаем изображение врага
+
+    Player p(heroImage, 100, 100, 42.0, 48.0, "Player1");//создаем объект p класса player, задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
+
+	std::list<Entity*>  enemies; //список врагов
+	std::list<Entity*>::iterator it; //итератор чтобы проходить по элементам списка
+
+	const int ENEMY_COUNT = 3;
+	int enemiesCount = 0;
+
+		for (int i = 0; i < ENEMY_COUNT; i++)
+		{
+			float xr = 150 + rand() % 500; //случайная координата врага на поле игры по оси “x”
+			float yr = 150 + rand() % 350; //случайная координата врага на поле игры по оси “y”
+										   //создаем врагов и помещаем в список
+			enemies.push_back(new Enemy(easyEnemyImage, xr, yr, 42.0, 48.0, "EasyEnemy"));
+			enemiesCount += 1; //увеличили счётчик врагов
+		}
+	
 	int createObjectForMapTimer = 0;//Переменная под время для генерирования камней
-
 	while (window.isOpen())
 	{
 		float time = clock.getElapsedTime().asMicroseconds();
@@ -216,9 +365,11 @@ int main()
 		createObjectForMapTimer += time;//наращиваем таймер
 		if (createObjectForMapTimer>1600) {
 			MapCash();
+			
 			createObjectForMapTimer = 0;//обнуляем таймер
 		}
 
+	
 
 
 		sf::Event event;
@@ -231,6 +382,24 @@ int main()
 
 		p.update(time); //оживляем объект “p” класса “Player” с помощью времени sfml,
 						// передавая время в качестве параметра функции update. 
+
+		for (it = enemies.begin(); it != enemies.end(); it++)
+		{
+			(*it)->update(time); //запускаем метод update()
+		}
+
+
+
+		if (p.life == true) {//если игрок жив
+			for (it = enemies.begin(); it != enemies.end(); it++) {//бежим по списку врагов
+				if ((p.getRect().intersects((*it)->getRect())) && ((*it)->name == "EasyEnemy"))
+				{
+					p.health -= 40;
+					std::cout << "YOURE LOSER";
+				}
+			}
+		}
+
 
 		window.clear();
 
@@ -262,6 +431,13 @@ int main()
 
 
 		window.draw(p.sprite);//рисуем спрайт объекта “p” класса “Player”
+		
+		for (it = enemies.begin(); it != enemies.end(); it++)
+		{
+			window.draw((*it)->sprite); //рисуем enemies объекты
+		}
+
+
 		window.display();
 	}
 	return 0;

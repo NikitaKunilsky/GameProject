@@ -51,7 +51,7 @@ public:
 class Player :public Entity {
 public:
 	int playerScore;//эта переменная может быть только у игрока
-
+	bool checkImm = false;
 	Player(Image &image, float X, float Y, int W, int H, std::string Name) :Entity(image, X, Y, W, H, Name) {
 		playerScore = 0;
 		state = stay;
@@ -134,6 +134,7 @@ public:
 			case stay: {//стоим
 				dy = speed;
 				dx = speed;
+				sprite.setTextureRect(IntRect(42, 144, 42, 48));
 				break;
 			}
 			}
@@ -166,13 +167,21 @@ public:
 					if (Dx > 0) { x = j * 64 - w; dx = 0; }//с правым краем карты
 					if (Dx < 0) { x = j * 64 + 64; dx = 0; }// с левым краем карты
 				}
+
+				if (TileMap[i][j] == '1')
+				{
+					if (Dy > 0) { y = i * 64 - h;  dy = 0; }//по Y 
+					if (Dy < 0) { y = i * 64 + 64; dy = 0; }//столкновение с верхними краями 
+					if (Dx > 0) { x = j * 64 - w; dx = 0; }//с правым краем карты
+					if (Dx < 0) { x = j * 64 + 64; dx = 0; }// с левым краем карты
+				}
 				if (TileMap[i][j] == 's') {
 					playerScore+= 4; //если взяли камень
 					TileMap[i][j] = ' ';
 				}
-				if (TileMap[i][j] == 'f') {
-					health -= 40;//если взяли ядовитый цветок	
-					TileMap[i][j] = ' ';//убрали цветок
+				if ((TileMap[i][j] == 'f') && (checkImm == false)) {
+					health -= 40;//если взяли ядовитый цветок
+					checkImm = true;
 				}
 
 				if (TileMap[i][j] == 'h') {
@@ -191,6 +200,12 @@ public:
 		//эта ф-ция нужна для проверки пересечений	
 	}
 
+	void immortality()
+	{
+		life = true;
+		health = health;
+	}
+
 };
 
 /////////////////////////////////////////ВРАГ////////////////////////////////////////////
@@ -204,7 +219,7 @@ public:
 			//вывода одного игрока. IntRect – для приведения типов
 			sprite.setTextureRect(IntRect(0, 0, w, h));
 			direction = rand() % 4; //Направление движения врага задаём случайным образом
-									  //через генератор случайных чисел
+							  //через генератор случайных чисел
 			speed = 0.075;//даем скорость.этот объект всегда двигается
 			dx = speed;
 		}
@@ -215,7 +230,7 @@ public:
 		for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
 			for (int j = x / 64; j<(x + w) / 64; j++)
 			{
-				if (TileMap[i][j] == '0')//если элемент - тайлик земли
+				if ((TileMap[i][j] == '0') || (TileMap[i][j] == '1')) //если элемент - тайлик земли
 				{
 					if (Dy > 0) {
 						y = i * 64 - h;  dy = -0.1;
@@ -295,6 +310,7 @@ public:
 
 		
 	}
+	
 };//класс Enemy закрыт
 ////////////////////////////////////////////////ПУЛЯ///////////////////////////////////////////////////////////
 class Bullet :public Entity {//класс пули
@@ -302,10 +318,11 @@ public:
 	int direction;//направление пули
 				  //всё так же, только взяли в конце состояние игрока (int dir) 
 				  //для задания направления полёта пули
-	Bullet(Image &image, float X, float Y, int W, int H, std::string  Name) :Entity(image, X, Y, W, H, Name) {
+	Bullet(Image &image, float X, float Y, int W, int H, std::string  Name, int dir) :Entity(image, X, Y, W, H, Name) {
 		x = X;
 		y = Y;
-		speed = 0.8;
+		direction = dir;
+		speed = 0.35;
 		w = h = 18;
 		life = true;
 		//выше инициализация в конструкторе
@@ -314,34 +331,14 @@ public:
 
 	void update(float time)
 	{
-		
-		if (life) {
-			if (Keyboard::isKeyPressed(Keyboard::G))  {
-				state = left;
-				speed = 0.3;
-			}
-			
-				if (Keyboard::isKeyPressed(Keyboard::J))  {
-					state = right;
-					speed = 0.3;
-				}
-				
-					if (Keyboard::isKeyPressed(Keyboard::Y)) {
-						state = up;
-						speed = 0.3;
-					}
-					
-						if (Keyboard::isKeyPressed(Keyboard::H)){
-							state = down;
-							speed = 0.3;
-						}
-						switch (state)
+						switch (direction)
 						{
 
-						case left: dx = -speed; dy = 0;   break;// state = left
-						case right: dx = speed; dy = 0;   break;// state = right
-						case up: dx = 0; dy = -speed;   break;// state = up
-						case down: dx = 0; dy = speed;   break;// state = down
+						case 0: dx = -speed; dy = 0;   break;// state = left
+						case 1: dx = speed; dy = 0;   break;// state = right
+						case 2: dx = 0; dy = -speed;   break;// state = up
+						case 3: dx = 0; dy = speed;   break;// state = down
+						case 4: dx = 0; dy = speed;   break;// state = down
 						}
 			x += dx*time;//само движение пули по х
 			y += dy*time;//по у
@@ -356,13 +353,13 @@ public:
 			for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
 				for (int j = x / 64; j < (x + w) / 64; j++)
 				{
-					if (TileMap[i][j] == '0')//если элемент наш тайлик земли, то
+					if (TileMap[i][j] == '0') //если элемент наш тайлик земли, то
 						life = false;// то пуля умирает
 				}
 
 			sprite.setPosition(x + w / 2, y + h / 2);//задается позицию пули
 		}
-	}
+	
 };
 
 
@@ -395,11 +392,11 @@ int main()
 	Clock clock;
 	Clock gameTimeClock;//переменная игрового времени, будем здесь хранить время игры 
 	Clock trapClock; // время сробатывания ловушки
+	Clock immClock; // время сробатывания ловушки
 	int gameTime = 0;//объявили игровое время, инициализировали.
-
 	Image BulletImage;//изображение для пули
 	BulletImage.loadFromFile("Sprites/bullet.png");//загрузили картинку в объект изображения
-
+	bool check = true;
 
 	Image heroImage;
 	heroImage.loadFromFile("Sprites/hero.png"); // загружаем изображение игрока
@@ -409,9 +406,10 @@ int main()
 
     Player p(heroImage, 100, 100, 42.0, 48.0, "Player1");//создаем объект p класса player, задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
 
-	std::list<Entity*>  Bullets;
+	std::list<Entity*>  BulletsForPlayer;
 	std::list<Entity*>  enemies; //список врагов
 	std::list<Entity*>::iterator it; //итератор чтобы проходить по элементам списка
+	std::list<Entity*>::iterator ip; //итератор чтобы проходить по элементам списка
 	
 
 	const int ENEMY_COUNT = 3;
@@ -427,78 +425,136 @@ int main()
 		}
 	
 	
-	while (window.isOpen())
-	{
-		int sttime = trapClock.getElapsedTime().asMilliseconds();
-		float time = clock.getElapsedTime().asMicroseconds();
+		while (window.isOpen())
+		{
+			int sttime = trapClock.getElapsedTime().asMilliseconds();
+			float time = clock.getElapsedTime().asMicroseconds();
 
-		if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds();
-		//игровое время в секундах идёт вперед, пока жив игрок. 
-		//Перезагружать как time его не надо. оно не обновляет логику игры
+			int immtime = immClock.getElapsedTime().asMilliseconds();
+			bool checkt;
 
-		clock.restart();
-		time = time / 800;
+			if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds();
+			//игровое время в секундах идёт вперед, пока жив игрок. 
+			//Перезагружать как time его не надо. оно не обновляет логику игры
+			clock.restart();
+			time = time / 800;
 
-		
-		if (sttime >= 2000) {
-			MapTraps();
-			trapClock.restart();
-		}
+
+
+			if (sttime >= 2000) {
+				MapTraps();
+				trapClock.restart();
+			}
+
+
 	
 
-
-		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			if (event.type == sf::Event::Closed)
-				window.close();
-			//стреляем по нажатию клавиши "P"
-			if (event.type == sf::Event::KeyPressed)
+			if (immtime <= 2000) {
+				if (p.life == true)
+					p.checkImm = true;
+					p.immortality();
+				    check = false;
+			}
+			else
 			{
-				if ((Keyboard::isKeyPressed(Keyboard::H)) || (Keyboard::isKeyPressed(Keyboard::Y)) ||  (Keyboard::isKeyPressed(Keyboard::G)) || (Keyboard::isKeyPressed(Keyboard::J)))
-					//добавляем в список Bullets пулю
-					Bullets.push_back(new Bullet(BulletImage, p.x, p.y, 18, 18, "Bullet"));
+				p.checkImm = false;
+				check = true;
+			}
+
+
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+					window.close();
+				//стреляем по нажатию клавиши "P"
+				if (event.type == sf::Event::KeyPressed)
+				{
+					if (Keyboard::isKeyPressed(Keyboard::P))
+						if (p.playerScore > 0)
+						{
+							//добавляем в список Bullets пулю
+							BulletsForPlayer.push_back(new Bullet(BulletImage, p.x, p.y, 18, 18, "Bullet", p.state));
+							p.playerScore -= 1;
+						}
+
+				}
 
 			}
 
-		}
 
+			p.update(time); //оживляем объект “p” класса “Player” с помощью времени sfml,
+							// передавая время в качестве параметра функции update. 
 
-		p.update(time); //оживляем объект “p” класса “Player” с помощью времени sfml,
-						// передавая время в качестве параметра функции update. 
+			for (it = enemies.begin(); it != enemies.end(); it++)
+			{
+				(*it)->update(time); //запускаем метод update()
+			}
 
-		for (it = enemies.begin(); it != enemies.end(); it++)
-		{
-			(*it)->update(time); //запускаем метод update()
-		}
-
-		for (it = Bullets.begin(); it != Bullets.end(); it++)
-		{
-			(*it)->update(time); //запускаем метод update()
-		}
-
-		//Проверяем список на наличие "мертвых" пуль и удаляем их
-		for (it = Bullets.begin(); it != Bullets.end(); )//говорим что проходимся от начала до конца
-		{// если этот объект мертв, то удаляем его
-			if ((*it)->life == false) { it = Bullets.erase(it); }
-			else
-				it++; //и идем курсором (итератором) к след объекту.
-		}
+			for (it = BulletsForPlayer.begin(); it != BulletsForPlayer.end(); it++)
+			{
+				(*it)->update(time); //запускаем метод update()
+			}
 
 
 
 
-		if (p.life == true) {//если игрок жив
-			for (it = enemies.begin(); it != enemies.end(); it++) {//бежим по списку врагов
-				if ((p.getRect().intersects((*it)->getRect())) && ((*it)->name == "EasyEnemy"))
-				{
-					p.health -= 40;
-					if (p.health <= 0)
-					std::cout << "YOURE LOSER";
+			for (it = enemies.begin(); it != enemies.end(); it++)
+			{
+				if ((*it)->life) {
+					for (ip = BulletsForPlayer.begin(); ip != BulletsForPlayer.end(); ip++)
+					{
+						if ((*ip)->life)
+						{
+							if ((*it)->getRect().intersects((*ip)->getRect()))
+							{
+								(*it)->health -= 50;
+								(*ip)->life = false;
+								if ((*it)->health <= 0)
+									(*it)->life = false;
+							}
+						}
+					}
+
 				}
 			}
-		}
 
+
+			//Проверяем список на наличие "мертвых" пуль и удаляем их
+			for (it = BulletsForPlayer.begin(); it != BulletsForPlayer.end(); )//говорим что проходимся от начала до конца
+			{// если этот объект мертв, то удаляем его
+				if ((*it)->life == false) { it = BulletsForPlayer.erase(it); }
+				else
+					it++; //и идем курсором (итератором) к след объекту.
+			}
+
+			//Проверяем список на наличие "мертвых" противников и удаляем их
+			for (it = enemies.begin(); it != enemies.end(); )//говорим что проходимся от начала до конца
+			{// если этот объект мертв, то удаляем его
+				if ((*it)->life == false) { it = enemies.erase(it); }
+				else
+					it++; //и идем курсором (итератором) к след объекту.
+			}
+
+			if (!(p.checkImm == true)) {
+				if (p.life == true) {//если игрок жив
+					for (it = enemies.begin(); it != enemies.end(); it++) {//бежим по списку врагов
+						if ((p.getRect().intersects((*it)->getRect())) && ((*it)->name == "EasyEnemy"))
+						{
+							p.health -= 40;
+							if (p.health <= 0)
+								std::cout << "YOURE LOSER";
+							p.checkImm = true;
+
+							
+						}
+					}
+				}
+			}
+
+			if (p.health > 0)
+			if ((p.checkImm == true) && (check == true))
+				immClock.restart();
 
 		window.clear();
 
@@ -516,14 +572,25 @@ int main()
 				if ((TileMap[i][j] == 'h')) s_map.setTextureRect(IntRect(256, 0, 64, 64));//сердце
 
 
-				s_map.setPosition(j * 64, i * 64);//раскладываем квадратики в карту.
 
+				s_map.setPosition(j * 64, i * 64);//раскладываем квадратики в карту.
 				window.draw(s_map);//рисуем квадратики на экран
+				
+			}
+		for (int i = 0; i < HEIGHT_MAP; i++)
+			for (int j = 0; j < WIDTH_MAP; j++)
+			{
+				if ((TileMap[i][j] == '1')) {
+					s_map.setTextureRect(IntRect(320, 0, 84, 64));//турель вправо 
+					s_map.setPosition(j * 64, i * 64);//раскладываем квадратики в карту.
+					window.draw(s_map);
+				}//рисуем квадратики на экран
 			}
 
-		std::ostringstream playerScoreString, playerHealthString, gameTimeString;//объявили переменную здоровья и времени
-		playerHealthString << p.health; gameTimeString << gameTime; playerScoreString << p.playerScore;//формируем строку
-		text.setString("AMMO : " + playerScoreString.str() + "\nHP   : " + playerHealthString.str() + "\nTIME  : " + gameTimeString.str());//задаем строку тексту
+
+		std::ostringstream playerScoreString, playerHealthString, gameTimeString, sstt;//объявили переменную здоровья и времени
+		sstt << immtime; playerHealthString << p.health; gameTimeString << gameTime; playerScoreString << p.playerScore;//формируем строку
+		text.setString("AMMO : " + playerScoreString.str() + "\nHP   : " + playerHealthString.str() + "\nTIME  : " + gameTimeString.str() + "\nIMMO : " + sstt.str() );//задаем строку тексту
 		text.setPosition(1054, 500);//задаем позицию текста
 		window.draw(text);//рисуем этот тексn
 
@@ -531,13 +598,15 @@ int main()
 
 		window.draw(p.sprite);//рисуем спрайт объекта “p” класса “Player”
 		
+
 		for (it = enemies.begin(); it != enemies.end(); it++)
 		{
+			if ((*it)->life)
 			window.draw((*it)->sprite); //рисуем enemies объекты
 		}
 
 		//рисуем пули
-		for (it = Bullets.begin(); it != Bullets.end(); it++)
+		for (it = BulletsForPlayer.begin(); it != BulletsForPlayer.end(); it++)
 		{
 			if ((*it)->life) //если пуля жива, то рисуем её
 				window.draw((*it)->sprite);

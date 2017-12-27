@@ -394,6 +394,7 @@ int main()
 
 	Clock clock;
 	Clock gameTimeClock;//переменна€ игрового времени, будем здесь хранить врем€ игры 
+	Clock trapClock; // врем€ сробатывани€ ловушки
 	int gameTime = 0;//объ€вили игровое врем€, инициализировали.
 
 	Image BulletImage;//изображение дл€ пули
@@ -425,9 +426,10 @@ int main()
 			enemiesCount += 1; //увеличили счЄтчик врагов
 		}
 	
-	int createObjectForMapTimer = 0;//ѕеременна€ под врем€ дл€ генерировани€ камней
+	
 	while (window.isOpen())
 	{
+		int sttime = trapClock.getElapsedTime().asMilliseconds();
 		float time = clock.getElapsedTime().asMicroseconds();
 
 		if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds();
@@ -437,13 +439,11 @@ int main()
 		clock.restart();
 		time = time / 800;
 
-		createObjectForMapTimer += time;//наращиваем таймер
-		if (createObjectForMapTimer>1600) {
-			MapCash();
-			
-			createObjectForMapTimer = 0;//обнул€ем таймер
+		
+		if (sttime >= 2000) {
+			MapTraps();
+			trapClock.restart();
 		}
-
 	
 
 

@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "Enemy.h"
 #include "bullet.h"
+#include "player.h"
 #include "Global.h"
 
 
@@ -14,234 +15,6 @@
 
 
 using namespace sf;
-////////////////////////////КЛАСС СУЩНОСТЬ////////////////////////
-
-
-////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
-class Player :public Entity {
-public:
-	int playerScore;//эта переменная может быть только у игрока
-	bool checkImm = false;
-	bool winStatus = false;
-	Player(Image &image, float X, float Y, int W, int H, std::string Name) :Entity(image, X, Y, W, H, Name) {
-		playerScore = 0;
-		state = stay;
-		if (name == "Player1") {
-			//Задаем спрайту один прямоугольник для
-			//вывода одного игрока. IntRect – для приведения типов
-			sprite.setTextureRect(IntRect(0, 0, w, h));
-		}
-	}
-
-    ~Player()
-	{
-
-	}
-	//////////////////ДВИЖЕНИЕ////////////////////
-	void control() {
-		if ((Keyboard::isKeyPressed(Keyboard::Left) || (Keyboard::isKeyPressed(Keyboard::A)))) {
-			state = left;
-			speed = 0.1;
-		}
-		else
-		{
-			if ((Keyboard::isKeyPressed(Keyboard::Right) || (Keyboard::isKeyPressed(Keyboard::D)))) {
-				state = right;
-				speed = 0.1;
-			}
-			else
-			{
-				if ((Keyboard::isKeyPressed(Keyboard::Up) || (Keyboard::isKeyPressed(Keyboard::W)))) {
-					state = up;
-					speed = 0.1;
-				}
-				else
-				{
-					if ((Keyboard::isKeyPressed(Keyboard::Down) || (Keyboard::isKeyPressed(Keyboard::S)))) {
-						state = down;
-						speed = 0.1;
-					}
-					else
-					{
-						state = stay;
-					}
-				}
-			}
-		}
-	}
-
-
-
-	void update(float time) //метод "оживления/обновления" объекта класса.
-	{
-		if (life){//проверяем, жив ли герой
-			control();//функция управления персонажем
-			switch (state)//делаются различные действия в зависимости от состояния
-			{
-			case right: {//состояние идти вправо
-				dx = speed; 
-				if (checkImm == false) {
-				CurrentFrame += 0.005*time;
-				
-					if (CurrentFrame > 4) CurrentFrame -= 4;
-					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 48, 42, 48));
-				}
-				break;
-			}
-			case left: {//состояние идти влево
-				dx = -speed;
-				if (checkImm == false) {
-				CurrentFrame += 0.005*time;
-				
-					if (CurrentFrame > 4) CurrentFrame -= 4;
-					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 96, 42, 48));
-				}
-				break;
-			}
-			case up: {//идти вверх
-				dy = -speed;
-				if (checkImm == false) {
-				CurrentFrame += 0.005*time;
-				
-					if (CurrentFrame > 4) CurrentFrame -= 4;
-					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 0, 42, 48));
-				}
-				break;
-			}
-			case down: {//идти вниз
-				dy = speed;
-				if (checkImm == false) {
-				CurrentFrame += 0.005*time;
-				
-					if (CurrentFrame > 4) CurrentFrame -= 4;
-					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 144, 42, 48));
-				}
-				break;
-			}
-			case stay: {//стоим
-				dy = speed;
-				dx = speed;
-				if (checkImm == false) {
-					sprite.setTextureRect(IntRect(42, 144, 42, 48));
-				}
-				break;
-			}
-			}
-			if (!(dx == 0)) {
-				x += dx*time; //движение по “X”
-				checkCollisionWithMap(dx, 0);//обрабатываем столкновение по Х
-			}
-			else {
-				y += dy*time; //движение по “Y”
-				checkCollisionWithMap(0, dy);//обрабатываем столкновение по Y
-			}
-			speed = 0;    //обнуляем скорость, чтобы персонаж остановился.
-						  //state = stay; //состояние - стоим
-
-			sprite.setPosition(x, y); //спрайт в позиции (x, y).
-
-			if (health <= 0) { life = false; }//если жизней меньше 0, либо равно 0, то умираем 
-		}
-	}
-
-	//Метод проверки столкновений с элементами карты
-	void checkCollisionWithMap(float Dx, float Dy) {
-		for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
-			for (int j = x / 64; j < (x + w) / 64; j++)
-			{
-				if (TileMap[i][j] == '0')//если элемент тайлик земли
-				{
-					if (Dy > 0) { y = i * 64 - h;  dy = 0; }//по Y 
-					if (Dy < 0) { y = i * 64 + 64; dy = 0; }//столкновение с верхними краями 
-					if (Dx > 0) { x = j * 64 - w; dx = 0; }//с правым краем карты
-					if (Dx < 0) { x = j * 64 + 64; dx = 0; }// с левым краем карты
-				}
-				if (TileMap[i][j] == 's') {
-					playerScore+= 4; //если взяли камень
-					TileMap[i][j] = ' ';
-				}
-				if ((TileMap[i][j] == 'f') && (checkImm == false)) {
-					health -= 40;//если взяли ядовитый цветок
-					checkImm = true;
-				}
-
-				if (TileMap[i][j] == 'h') {
-					health += 20;//если взяли сердечко
-					TileMap[i][j] = ' ';//убрали сердечко
-				}
-				if (TileMap[i][j] == 'r') {
-					winStatus = true;
-				}
-			}
-	}
-
-	FloatRect getRect() {//метод получения прямоугольника. его коорд, размеры (шир,высот).
-		FloatRect FR(x, y, w, h);
-		return FR;
-		//Тип данных (класс) "sf::FloatRect" позволяет хранить четыре координаты прямоугольника
-		//в нашей игре это координаты текущего расположения тайла на карте
-		//далее это позволит спросить, есть ли ещё какой-либо тайл на этом месте 
-		//эта ф-ция нужна для проверки пересечений	
-	}
-
-	void immortality(int time)
-	{
-		switch (state)//делаются различные действия в зависимости от состояния
-		{
-		case right: {//состояние идти вправо
-			CurrentFrame += 0.015*time;
-			if (CurrentFrame > 4) CurrentFrame -= 4; 
-				
-				if (int(CurrentFrame) % 2 == 0)
-					sprite.setTextureRect(IntRect(0, 0, 0, 0));
-				else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 48, 42, 48));
-			
-			break;
-		}
-		case left: {//состояние идти влево
-			CurrentFrame += 0.015*time;
-			if (CurrentFrame > 4) CurrentFrame -= 4; 
-				
-				if (int(CurrentFrame) % 2 == 0)
-					sprite.setTextureRect(IntRect(0, 0, 0, 0));
-				else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 96, 42, 48));
-		
-			break;
-		}
-		case up: {//идти вверх
-			CurrentFrame += 0.015*time;
-			if (CurrentFrame > 4) CurrentFrame -= 4; 
-			if (int(CurrentFrame) % 2 == 0)
-				sprite.setTextureRect(IntRect(0, 0, 0, 0));
-			else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 0, 42, 48));
-		
-			break;
-		}
-		case down: {//идти вниз
-			CurrentFrame += 0.015*time;
-			if (CurrentFrame > 4) CurrentFrame -= 4; 
-				if (int(CurrentFrame) % 2 == 0)
-					sprite.setTextureRect(IntRect(0, 0, 0, 0));
-				else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 144, 42, 48));
-			break;
-		}
-		case stay: {//стоим
-			CurrentFrame += 0.015*time;
-			if (CurrentFrame > 4) CurrentFrame -= 4; 
-				if (int(CurrentFrame) % 2 == 0)
-					sprite.setTextureRect(IntRect(0, 0, 0, 0));
-				else sprite.setTextureRect(IntRect(42, 144, 42, 48));
-			
-			
-
-			break;
-		}
-		}
-		life = true;
-		health = health;
-	}
-
-};
 
 
 int main()
@@ -286,7 +59,7 @@ int main()
 	Image easyEnemyImage;
 	easyEnemyImage.loadFromFile("Sprites/enemy.png"); // загружаем изображение врага
 
-    Player p(heroImage, 100, 100, 42.0, 48.0, "Player1");//создаем объект p класса player, задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
+    Player p(heroImage, 100, 600, 42.0, 48.0, "Player1");//создаем объект p класса player, задаем "hero.png" как имя файла+расширение, далее координата Х,У, ширина, высота.
 
 	std::list<Entity*>  BulletsForPlayer;
 	std::list<Entity*>  enemies; //список врагов
@@ -314,7 +87,7 @@ int main()
 
 			int immtime = immClock.getElapsedTime().asMilliseconds();
 
-			if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds();
+			if ((p.life) && !(p.winStatus)) gameTime = gameTimeClock.getElapsedTime().asSeconds();
 			//игровое время в секундах идёт вперед, пока жив игрок. 
 			//Перезагружать как time его не надо. оно не обновляет логику игры
 			clock.restart();
@@ -425,7 +198,7 @@ int main()
 						if ((p.getRect().intersects((*it)->getRect())) && ((*it)->name == "EasyEnemy"))
 						{
 							p.health -= 40;
-							std::cout << "YOURE LOSER";
+							std::cout << "YOU TOOK DMG" << endl;
 							p.checkImm = true;
 
 							

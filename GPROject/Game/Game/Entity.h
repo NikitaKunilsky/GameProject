@@ -23,7 +23,7 @@ public:
 	FloatRect getRect();
 	virtual ~Entity()
 	{
-		std::cout << "Parent died";
+		std::cout << "Parent died" << endl;
 	};
 
 };

@@ -17,7 +17,7 @@ public:
 	Bullet(Image &image, float X, float Y, int W, int H, std::string  Name, int dir); // :Entity(image, X, Y, W, H, Name)
     ~Bullet ()
 	{
-		std::cout << "Bullet down";
+		std::cout << "Bullet down" << endl;
 	};
 	void update(float time);
 

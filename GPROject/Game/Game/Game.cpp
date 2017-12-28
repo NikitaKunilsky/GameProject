@@ -34,7 +34,10 @@ public:
 		texture.loadFromImage(image); //заносим наше изображение в текстуру
 		sprite.setTexture(texture); //заливаем спрайт текстурой
 	}
-
+	virtual ~Entity ()
+	{
+		std::cout << "Parent died";
+	}
 	FloatRect getRect() {//метод получения прямоугольника. его коорд, размеры (шир,высот).
 		FloatRect FR(x, y, w, h); // переменная FR типа FloatRect
 		return FR;
@@ -52,6 +55,7 @@ class Player :public Entity {
 public:
 	int playerScore;//эта переменная может быть только у игрока
 	bool checkImm = false;
+	bool winStatus = false;
 	Player(Image &image, float X, float Y, int W, int H, std::string Name) :Entity(image, X, Y, W, H, Name) {
 		playerScore = 0;
 		state = stay;
@@ -62,6 +66,10 @@ public:
 		}
 	}
 
+    ~Player()
+	{
+
+	}
 	//////////////////ДВИЖЕНИЕ////////////////////
 	void control() {
 		if ((Keyboard::isKeyPressed(Keyboard::Left) || (Keyboard::isKeyPressed(Keyboard::A)))) {
@@ -99,42 +107,56 @@ public:
 
 	void update(float time) //метод "оживления/обновления" объекта класса.
 	{
-		if (life) {//проверяем, жив ли герой
+		if (life){//проверяем, жив ли герой
 			control();//функция управления персонажем
 			switch (state)//делаются различные действия в зависимости от состояния
 			{
 			case right: {//состояние идти вправо
-				dx = speed;
+				dx = speed; 
+				if (checkImm == false) {
 				CurrentFrame += 0.005*time;
-				if (CurrentFrame > 4) CurrentFrame -= 4;
-				sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 48, 42, 48));
+				
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 48, 42, 48));
+				}
 				break;
 			}
 			case left: {//состояние идти влево
 				dx = -speed;
+				if (checkImm == false) {
 				CurrentFrame += 0.005*time;
-				if (CurrentFrame > 4) CurrentFrame -= 4;
-				sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 96, 42, 48));
+				
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 96, 42, 48));
+				}
 				break;
 			}
 			case up: {//идти вверх
 				dy = -speed;
+				if (checkImm == false) {
 				CurrentFrame += 0.005*time;
-				if (CurrentFrame > 4) CurrentFrame -= 4;
-				sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 0, 42, 48));
+				
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 0, 42, 48));
+				}
 				break;
 			}
 			case down: {//идти вниз
 				dy = speed;
+				if (checkImm == false) {
 				CurrentFrame += 0.005*time;
-				if (CurrentFrame > 4) CurrentFrame -= 4;
-				sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 144, 42, 48));
+				
+					if (CurrentFrame > 4) CurrentFrame -= 4;
+					sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 144, 42, 48));
+				}
 				break;
 			}
 			case stay: {//стоим
 				dy = speed;
 				dx = speed;
-				sprite.setTextureRect(IntRect(42, 144, 42, 48));
+				if (checkImm == false) {
+					sprite.setTextureRect(IntRect(42, 144, 42, 48));
+				}
 				break;
 			}
 			}
@@ -167,14 +189,6 @@ public:
 					if (Dx > 0) { x = j * 64 - w; dx = 0; }//с правым краем карты
 					if (Dx < 0) { x = j * 64 + 64; dx = 0; }// с левым краем карты
 				}
-
-				if (TileMap[i][j] == '1')
-				{
-					if (Dy > 0) { y = i * 64 - h;  dy = 0; }//по Y 
-					if (Dy < 0) { y = i * 64 + 64; dy = 0; }//столкновение с верхними краями 
-					if (Dx > 0) { x = j * 64 - w; dx = 0; }//с правым краем карты
-					if (Dx < 0) { x = j * 64 + 64; dx = 0; }// с левым краем карты
-				}
 				if (TileMap[i][j] == 's') {
 					playerScore+= 4; //если взяли камень
 					TileMap[i][j] = ' ';
@@ -188,6 +202,9 @@ public:
 					health += 20;//если взяли сердечко
 					TileMap[i][j] = ' ';//убрали сердечко
 				}
+				if (TileMap[i][j] == 'r') {
+					winStatus = true;
+				}
 			}
 	}
 
@@ -200,8 +217,59 @@ public:
 		//эта ф-ция нужна для проверки пересечений	
 	}
 
-	void immortality()
+	void immortality(int time)
 	{
+		switch (state)//делаются различные действия в зависимости от состояния
+		{
+		case right: {//состояние идти вправо
+			CurrentFrame += 0.015*time;
+			if (CurrentFrame > 4) CurrentFrame -= 4; 
+				
+				if (int(CurrentFrame) % 2 == 0)
+					sprite.setTextureRect(IntRect(0, 0, 0, 0));
+				else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 48, 42, 48));
+			
+			break;
+		}
+		case left: {//состояние идти влево
+			CurrentFrame += 0.015*time;
+			if (CurrentFrame > 4) CurrentFrame -= 4; 
+				
+				if (int(CurrentFrame) % 2 == 0)
+					sprite.setTextureRect(IntRect(0, 0, 0, 0));
+				else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 96, 42, 48));
+		
+			break;
+		}
+		case up: {//идти вверх
+			CurrentFrame += 0.015*time;
+			if (CurrentFrame > 4) CurrentFrame -= 4; 
+			if (int(CurrentFrame) % 2 == 0)
+				sprite.setTextureRect(IntRect(0, 0, 0, 0));
+			else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 0, 42, 48));
+		
+			break;
+		}
+		case down: {//идти вниз
+			CurrentFrame += 0.015*time;
+			if (CurrentFrame > 4) CurrentFrame -= 4; 
+				if (int(CurrentFrame) % 2 == 0)
+					sprite.setTextureRect(IntRect(0, 0, 0, 0));
+				else sprite.setTextureRect(IntRect(42 * int(CurrentFrame), 144, 42, 48));
+			break;
+		}
+		case stay: {//стоим
+			CurrentFrame += 0.015*time;
+			if (CurrentFrame > 4) CurrentFrame -= 4; 
+				if (int(CurrentFrame) % 2 == 0)
+					sprite.setTextureRect(IntRect(0, 0, 0, 0));
+				else sprite.setTextureRect(IntRect(42, 144, 42, 48));
+			
+			
+
+			break;
+		}
+		}
 		life = true;
 		health = health;
 	}
@@ -225,12 +293,17 @@ public:
 		}
 	}
 
+	~Enemy()
+	{
+		std::cout << "Enemy down";
+	}
+
 	void checkCollisionWithMap(float Dx, float Dy)//ф-ция проверки столкновений с картой
 	{
 		for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
 			for (int j = x / 64; j<(x + w) / 64; j++)
 			{
-				if ((TileMap[i][j] == '0') || (TileMap[i][j] == '1')) //если элемент - тайлик земли
+				if (TileMap[i][j] == '0')  //если элемент - тайлик земли
 				{
 					if (Dy > 0) {
 						y = i * 64 - h;  dy = -0.1;
@@ -377,6 +450,10 @@ int main()
 	font.loadFromFile("Abys-Regular.ttf");//передаем нашему шрифту файл шрифта
 	Text text("", font, 30);//создаем объект текст. закидываем в объект текст строку, шрифт, размер шрифта(в пикселях);//сам объект текст (не строка)
 	text.setStyle(Text::Bold);//жирный текст.
+	Text death_text("", font, 100);
+	death_text.setStyle(Text::Bold);
+	Text win_text("", font, 100);
+	win_text.setStyle(Text::Bold);
 
 
 
@@ -452,7 +529,7 @@ int main()
 			if (immtime <= 2000) {
 				if (p.life == true)
 					p.checkImm = true;
-					p.immortality();
+					p.immortality(time);
 				    check = false;
 			}
 			else
@@ -531,10 +608,12 @@ int main()
 			//Проверяем список на наличие "мертвых" противников и удаляем их
 			for (it = enemies.begin(); it != enemies.end(); )//говорим что проходимся от начала до конца
 			{// если этот объект мертв, то удаляем его
-				if ((*it)->life == false) { it = enemies.erase(it); }
+				if ((*it)->life == false) { delete (*it); it = enemies.erase(it); }
 				else
 					it++; //и идем курсором (итератором) к след объекту.
 			}
+
+			
 
 			if (!(p.checkImm == true)) {
 				if (p.life == true) {//если игрок жив
@@ -542,8 +621,7 @@ int main()
 						if ((p.getRect().intersects((*it)->getRect())) && ((*it)->name == "EasyEnemy"))
 						{
 							p.health -= 40;
-							if (p.health <= 0)
-								std::cout << "YOURE LOSER";
+							std::cout << "YOURE LOSER";
 							p.checkImm = true;
 
 							
@@ -570,27 +648,18 @@ int main()
 																						  //встретили символ 0, то рисуем 3й квадратик
 				if ((TileMap[i][j] == 'f')) s_map.setTextureRect(IntRect(192, 0, 64, 64));//цветок
 				if ((TileMap[i][j] == 'h')) s_map.setTextureRect(IntRect(256, 0, 64, 64));//сердце
-
+				if ((TileMap[i][j] == 'r')) s_map.setTextureRect(IntRect(320, 0, 64, 64));//сердце
 
 
 				s_map.setPosition(j * 64, i * 64);//раскладываем квадратики в карту.
 				window.draw(s_map);//рисуем квадратики на экран
 				
 			}
-		for (int i = 0; i < HEIGHT_MAP; i++)
-			for (int j = 0; j < WIDTH_MAP; j++)
-			{
-				if ((TileMap[i][j] == '1')) {
-					s_map.setTextureRect(IntRect(320, 0, 84, 64));//турель вправо 
-					s_map.setPosition(j * 64, i * 64);//раскладываем квадратики в карту.
-					window.draw(s_map);
-				}//рисуем квадратики на экран
-			}
 
 
-		std::ostringstream playerScoreString, playerHealthString, gameTimeString, sstt;//объявили переменную здоровья и времени
-		sstt << immtime; playerHealthString << p.health; gameTimeString << gameTime; playerScoreString << p.playerScore;//формируем строку
-		text.setString("AMMO : " + playerScoreString.str() + "\nHP   : " + playerHealthString.str() + "\nTIME  : " + gameTimeString.str() + "\nIMMO : " + sstt.str() );//задаем строку тексту
+		std::ostringstream playerScoreString, playerHealthString, gameTimeString;//объявили переменную здоровья и времени
+		playerHealthString << p.health; gameTimeString << gameTime; playerScoreString << p.playerScore;//формируем строку
+		text.setString("AMMO : " + playerScoreString.str() + "\nHP   : " + playerHealthString.str() + "\nTIME  : " + gameTimeString.str() );//задаем строку тексту
 		text.setPosition(1054, 500);//задаем позицию текста
 		window.draw(text);//рисуем этот тексn
 
@@ -611,7 +680,17 @@ int main()
 			if ((*it)->life) //если пуля жива, то рисуем её
 				window.draw((*it)->sprite);
 		}
+		if ((p.winStatus == true) || (p.health > 0)) {
+			win_text.setString("YOU WON ");//задаем строку тексту
+			win_text.setPosition((1024 / 2 - 210), (768 / 2 - 50));//задаем позицию текста
+			window.draw(win_text);//рисуем этот текст
+		}
 
+		if (p.health <= 0) {
+			death_text.setString("YOU DIED");//задаем строку тексту
+			death_text.setPosition((1024/2 - 210), (768/2 - 50));//задаем позицию текста
+			window.draw(death_text);//рисуем этот текст
+		}
 
 		window.display();
 	}

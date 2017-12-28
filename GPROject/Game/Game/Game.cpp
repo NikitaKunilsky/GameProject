@@ -1,12 +1,15 @@
 #include "stdafx.h"
 #include <iostream> 
 #include <SFML/Graphics.hpp>
+#include <sstream> //текст
+#include <list>
 #include "map.h" //подключили код с картой
 #include "Entity.h"
 #include "Enemy.h"
-#include <sstream> //текст
+#include "bullet.h"
 
-#include <list>
+
+
 
 
 using namespace sf;
@@ -239,62 +242,6 @@ public:
 
 };
 
-/////////////////////////////////////////ВРАГ////////////////////////////////////////////
-
-
-////////////////////////////////////////////////ПУЛЯ///////////////////////////////////////////////////////////
-class Bullet :public Entity {//класс пули
-public:
-	int direction;//направление пули
-				  //всё так же, только взяли в конце состояние игрока (int dir) 
-				  //для задания направления полёта пули
-	Bullet(Image &image, float X, float Y, int W, int H, std::string  Name, int dir) :Entity(image, X, Y, W, H, Name) {
-		x = X;
-		y = Y;
-		direction = dir;
-		speed = 0.35;
-		w = h = 18;
-		life = true;
-		//выше инициализация в конструкторе
-	}
-
-
-	void update(float time)
-	{
-						switch (direction)
-						{
-
-						case 0: dx = -speed; dy = 0;   break;// state = left
-						case 1: dx = speed; dy = 0;   break;// state = right
-						case 2: dx = 0; dy = -speed;   break;// state = up
-						case 3: dx = 0; dy = speed;   break;// state = down
-						case 4: dx = 0; dy = speed;   break;// state = down
-						}
-			x += dx*time;//само движение пули по х
-			y += dy*time;//по у
-
-			if (x <= 0) x = 20;// задержка пули в левой стене, чтобы при проседании кадров она случайно не вылетела за предел карты и не было ошибки (сервер может тормозить!)
-			if (y <= 0) y = 20;
-
-			if (x >= 1024) x = 800;// задержка пули в правой стене, чтобы при проседании кадров она случайно не вылетела за предел карты и не было ошибки (сервер может тормозить!)
-			if (y >= 768) y = 680;
-
-
-			for (int i = y / 64; i < (y + h) / 64; i++)//проходимся по элементам карты
-				for (int j = x / 64; j < (x + w) / 64; j++)
-				{
-					if (TileMap[i][j] == '0') //если элемент наш тайлик земли, то
-						life = false;// то пуля умирает
-				}
-
-			sprite.setPosition(x + w / 2, y + h / 2);//задается позицию пули
-		}
-	
-};
-
-
-
-
 
 int main()
 {
@@ -456,7 +403,7 @@ int main()
 			//Проверяем список на наличие "мертвых" пуль и удаляем их
 			for (it = BulletsForPlayer.begin(); it != BulletsForPlayer.end(); )//говорим что проходимся от начала до конца
 			{// если этот объект мертв, то удаляем его
-				if ((*it)->life == false) { it = BulletsForPlayer.erase(it); }
+				if ((*it)->life == false) { delete (*it); it = BulletsForPlayer.erase(it); }
 				else
 					it++; //и идем курсором (итератором) к след объекту.
 			}

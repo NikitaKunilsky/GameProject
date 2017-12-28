@@ -3,6 +3,7 @@
 #include <iostream> 
 #include "Enemy.h"
 #include "map.h"
+#include "Global.h"
 
 using namespace sf;
 using namespace std;

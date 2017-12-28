@@ -2,6 +2,8 @@
 #include <SFML\Graphics.hpp> 
 #include "bullet.h"
 #include "map.h"
+#include "Global.h"
+
 	Bullet::Bullet(Image &image, float X, float Y, int W, int H, std::string  Name, int dir) :Entity(image, X, Y, W, H, Name) {
 		x = X;
 		y = Y;

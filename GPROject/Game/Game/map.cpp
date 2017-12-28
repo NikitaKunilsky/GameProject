@@ -1,8 +1,9 @@
 #include <SFML\Graphics.hpp>
 #include "stdafx.h"
 #include "map.h"
+#include "Global.h"
 
-TileMap[HEIGHT_MAP] = {
+std::string TileMap[HEIGHT_MAP] = {
 	"0000000000000000",
 	"0    s   hh    0",
 	"0              0",
@@ -16,8 +17,8 @@ TileMap[HEIGHT_MAP] = {
 	"0          s s 0",
 	"0000000000000000",
 };
-
-void MapTraps() {
+void MapTraps()
+{
 	if (TileMap[3][14] == 'f')
 		TileMap[3][14] = ' ';
 	else TileMap[3][14] = 'f';
@@ -33,4 +34,4 @@ void MapTraps() {
 	if (TileMap[8][14] == 'f')
 		TileMap[8][14] = ' ';
 	else TileMap[8][14] = 'f';
-}
+};

@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "Enemy.h"
 #include "bullet.h"
+#include "Global.h"
 
 
 

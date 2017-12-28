@@ -22,8 +22,6 @@ public:
 	void update(float time);
 	void checkCollisionWithMap(float Dx, float Dy);
 
-	FloatRect getRect();
-
 	void immortality(int time);
 
 };

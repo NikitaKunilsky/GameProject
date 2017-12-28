@@ -7,8 +7,8 @@ std::string TileMap[HEIGHT_MAP] = {
 	"0    s   hh    0",
 	"0              0",
 	"0      00000fff0",    
-	"0      0       0",
-	"0      0       0",
+	"0      0r      0",
+	"0      0r      0",
 	"0f00000000000000",
 	"0              0",
 	"00000000000000f0",
@@ -16,7 +16,7 @@ std::string TileMap[HEIGHT_MAP] = {
 	"0          s s 0",
 	"0000000000000000",
 };
-void MapCash() {
+void MapTraps() {
 	if (TileMap[3][14] == 'f')
 		TileMap[3][14] = ' ';
 	else TileMap[3][14] = 'f';
